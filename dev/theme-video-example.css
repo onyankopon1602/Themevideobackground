@@ -1,0 +1,16 @@
+/**
+ * @name Example Video Theme
+ * @description Example theme using ThemeVideoBackground.
+ */
+
+:root {
+  --vc-video-bg-id: "example-video-theme";
+  --vc-video-bg: url("https://example.com/background.mp4");
+  --vc-video-bg-fit: cover;
+  --vc-video-bg-opacity: 1;
+}
+
+body,
+#app-mount {
+  background: transparent !important;
+}
