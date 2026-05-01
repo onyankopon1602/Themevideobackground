@@ -1,6 +1,6 @@
 # ThemeVideoBackground
 
-ThemeVideoBackground is a Vencord plugin that lets themes define a looping video background through CSS variables.
+ThemeVideoBackground is a Vencord/better discord plugin that lets themes define a looping video background through CSS variables.
 
 The repository contains two packages:
 
