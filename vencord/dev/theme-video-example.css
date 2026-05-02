@@ -8,8 +8,10 @@
   --vc-video-bg: url("https://example.com/background.mp4");
   --vc-video-bg-fit: cover;
   --vc-video-bg-opacity: 1;
+  --vc-video-bg-z-index: 0;
 }
 
+/* Theme-owned styling. The plugin does not make Discord transparent for you. */
 body,
 #app-mount {
   background: transparent !important;

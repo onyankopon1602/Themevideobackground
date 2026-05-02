@@ -10,6 +10,7 @@ Recommended example:
   --vc-video-bg: url("https://example.com/background.mp4");
   --vc-video-bg-fit: cover;
   --vc-video-bg-opacity: 1;
+  --vc-video-bg-z-index: 0;
 }
 ```
 
@@ -23,6 +24,7 @@ Supported variables:
 --j1c-video-bg-id: "cache-id";
 --vc-video-bg-fit: cover;
 --vc-video-bg-opacity: 1;
+--vc-video-bg-z-index: 0;
 ```
 
 Behavior:
@@ -39,4 +41,4 @@ Recommended formats:
 - WebM VP8/VP9.
 - Avoid very large files; compress videos before publishing.
 
-The theme must make its main surfaces transparent so the video can be seen.
+The plugin is intentionally neutral. It only adds the video element and does not force transparency, blur, overlays, fallback colors, or app z-index rules. Theme authors must handle those visual choices in their own CSS.

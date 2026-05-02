@@ -14,9 +14,10 @@ Supported variables:
   --vc-video-bg: url("https://example.com/background.mp4");
   --vc-video-bg-fit: cover;
   --vc-video-bg-opacity: 1;
+  --vc-video-bg-z-index: 0;
 }
 ```
 
 `--j1c-video-bg` is also supported.
 
-The plugin only injects video and transparency styles when a theme actually defines a video variable, so normal themes are not affected.
+The plugin only injects the video element when a theme actually defines a video variable, so normal themes are not affected. It does not force transparency, blur, overlays, fallback colors, or app z-index rules.

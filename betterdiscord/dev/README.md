@@ -16,6 +16,7 @@ Theme developers can add:
   --vc-video-bg: url("https://example.com/background.mp4");
   --vc-video-bg-fit: cover;
   --vc-video-bg-opacity: 1;
+  --vc-video-bg-z-index: 0;
 }
 ```
 
@@ -30,3 +31,5 @@ Aliases:
 For shared themes, use a public direct video URL. Avoid local `file:///` URLs unless the theme is only for your own machine.
 
 MP4 files must be compatible with Discord/Chromium. Use H.264 in `yuv420p` for best results.
+
+The plugin is intentionally neutral. It only adds the video element and does not force transparency, blur, overlays, fallback colors, or app z-index rules. Theme authors must handle those visual choices in their own CSS.

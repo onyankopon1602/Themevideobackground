@@ -8,6 +8,7 @@ Lets a theme define a video background with a CSS variable.
   --vc-video-bg: url("https://example.com/background.mp4");
   --vc-video-bg-fit: cover;
   --vc-video-bg-opacity: 1;
+  --vc-video-bg-z-index: 0;
 }
 ```
 
@@ -25,4 +26,4 @@ The plugin accepts `.mp4` video URLs, but Discord can only play MP4 files encode
 
 For theme developers, WebM VP8/VP9 is also supported. Very large files should be compressed before publishing.
 
-The video is injected as a muted, looping, autoplaying `<video>` behind Discord. Keep your theme's main surfaces transparent so the video can be seen.
+The plugin only injects a muted, looping, autoplaying `<video>`. It does not force transparency, blur, overlays, fallback colors, or app z-index rules. Theme authors must handle those visual choices in their own CSS.

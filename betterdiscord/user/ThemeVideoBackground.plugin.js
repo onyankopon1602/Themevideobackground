@@ -93,18 +93,7 @@ module.exports = class ThemeVideoBackground {
                 object-fit: var(--vc-video-bg-fit, cover) !important;
                 opacity: var(--vc-video-bg-opacity, 1) !important;
                 pointer-events: none !important;
-                z-index: 0 !important;
-                background: #000 !important;
-            }
-
-            body,
-            #app-mount {
-                background: transparent !important;
-            }
-
-            #app-mount {
-                position: relative !important;
-                z-index: 1 !important;
+                z-index: var(--vc-video-bg-z-index, 0) !important;
             }
         `;
         document.head.append(this.style);
