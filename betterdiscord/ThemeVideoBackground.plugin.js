@@ -131,6 +131,12 @@ module.exports = class ThemeVideoBackground {
                 opacity: var(--vc-video-bg-opacity, 1) !important;
                 pointer-events: none !important;
                 z-index: var(--vc-video-bg-z-index, 0) !important;
+                display: block !important;
+                background: transparent !important;
+                background-color: transparent !important;
+                border: 0 !important;
+                outline: 0 !important;
+                box-shadow: none !important;
             }
         `;
         document.head.append(this.style);
@@ -154,8 +160,14 @@ module.exports = class ThemeVideoBackground {
         this.video.playsInline = true;
         this.video.disablePictureInPicture = true;
         this.video.setAttribute("aria-hidden", "true");
+        this.video.style.background = "transparent";
+        this.video.style.pointerEvents = "none";
         this.video.addEventListener("error", () => {
             console.error("[ThemeVideoBackground] Video error", this.video?.currentSrc, this.video?.error?.code, this.video?.error?.message);
+            if (this.video) this.video.style.display = "none";
+        });
+        this.video.addEventListener("loadeddata", () => {
+            if (this.video) this.video.style.display = "";
         });
 
         document.body.prepend(this.video);

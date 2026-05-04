@@ -84,6 +84,12 @@ function ensureStyle() {
             opacity: var(--vc-video-bg-opacity, 1) !important;
             pointer-events: none !important;
             z-index: var(--vc-video-bg-z-index, 0) !important;
+            display: block !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            border: 0 !important;
+            outline: 0 !important;
+            box-shadow: none !important;
         }
     `;
     document.head.append(style);
@@ -107,8 +113,14 @@ function ensureVideo() {
     video.playsInline = true;
     video.disablePictureInPicture = true;
     video.setAttribute("aria-hidden", "true");
+    video.style.background = "transparent";
+    video.style.pointerEvents = "none";
     video.addEventListener("error", () => {
         console.error("[ThemeVideoBackground] Video error", video?.currentSrc, video?.error?.code, video?.error?.message);
+        if (video) video.style.display = "none";
+    });
+    video.addEventListener("loadeddata", () => {
+        if (video) video.style.display = "";
     });
 
     document.body.prepend(video);
