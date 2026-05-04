@@ -14,7 +14,8 @@ module.exports = class ThemeVideoBackground {
         this.currentSrc = "";
         this.currentBlobUrl = "";
         this.syncRun = 0;
-        this.interval = null;
+        this.fallbackInterval = null;
+        this.syncTimer = null;
         this.observer = null;
         this.videoId = "bd-theme-video-background";
         this.styleId = "bd-theme-video-background-style";
@@ -23,18 +24,30 @@ module.exports = class ThemeVideoBackground {
     }
 
     start() {
-        this.syncVideo();
-        this.interval = window.setInterval(() => this.syncVideo(), 1500);
-        this.observer = new MutationObserver(() => this.syncVideo());
-        this.observer.observe(document.documentElement, {
+        this.scheduleSync(0);
+        this.fallbackInterval = window.setInterval(() => this.scheduleSync(), 10000);
+        this.observer = new MutationObserver(() => this.scheduleSync());
+
+        this.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "style"]
+        });
+        this.observe(document.head, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+        this.observe(document.body, {
             attributes: true,
             attributeFilter: ["class", "style"]
         });
     }
 
     stop() {
-        if (this.interval) window.clearInterval(this.interval);
-        this.interval = null;
+        if (this.fallbackInterval) window.clearInterval(this.fallbackInterval);
+        if (this.syncTimer) window.clearTimeout(this.syncTimer);
+        this.fallbackInterval = null;
+        this.syncTimer = null;
         this.observer?.disconnect();
         this.observer = null;
         this.removeVideo();
@@ -42,6 +55,20 @@ module.exports = class ThemeVideoBackground {
         this.currentKey = "";
         this.currentSrc = "";
         this.revokeBlobUrl();
+    }
+
+    observe(target, options) {
+        if (!target) return;
+        this.observer.observe(target, options);
+    }
+
+    scheduleSync(delay = 60) {
+        if (this.syncTimer) window.clearTimeout(this.syncTimer);
+
+        this.syncTimer = window.setTimeout(() => {
+            this.syncTimer = null;
+            void this.syncVideo();
+        }, delay);
     }
 
     readCssVariable(name) {
@@ -90,6 +117,7 @@ module.exports = class ThemeVideoBackground {
 
     ensureStyle() {
         if (this.style?.isConnected) return;
+        if (!document.head) return;
 
         this.style = document.createElement("style");
         this.style.id = this.styleId;
@@ -115,18 +143,17 @@ module.exports = class ThemeVideoBackground {
 
     ensureVideo() {
         if (this.video?.isConnected) return this.video;
+        if (!document.body) return null;
 
         this.video = document.createElement("video");
         this.video.id = this.videoId;
         this.video.autoplay = true;
         this.video.loop = true;
         this.video.muted = true;
+        this.video.preload = "auto";
         this.video.playsInline = true;
         this.video.disablePictureInPicture = true;
         this.video.setAttribute("aria-hidden", "true");
-        this.video.addEventListener("loadeddata", () => {
-            console.info("[ThemeVideoBackground] Video loaded", this.video?.currentSrc, this.video?.videoWidth, this.video?.videoHeight);
-        });
         this.video.addEventListener("error", () => {
             console.error("[ThemeVideoBackground] Video error", this.video?.currentSrc, this.video?.error?.code, this.video?.error?.message);
         });
@@ -202,12 +229,12 @@ module.exports = class ThemeVideoBackground {
 
         this.ensureStyle();
         const element = this.ensureVideo();
+        if (!this.style || !element) return;
 
         if (key !== this.currentKey) {
             this.currentKey = key;
             this.currentSrc = await this.resolveVideoSource(src);
             if (run !== this.syncRun) return;
-            console.info("[ThemeVideoBackground] Using video source", this.currentSrc);
             element.src = this.currentSrc;
             element.load();
         }

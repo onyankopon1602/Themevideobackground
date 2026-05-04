@@ -18,7 +18,8 @@ let style: HTMLStyleElement | null = null;
 let currentKey = "";
 let currentResolvedSrc = "";
 let syncRun = 0;
-let interval: number | undefined;
+let fallbackInterval: number | undefined;
+let syncTimer: number | undefined;
 let observer: MutationObserver | undefined;
 let loggedMissingSrc = false;
 let loggedMissingDom = false;
@@ -102,12 +103,10 @@ function ensureVideo() {
     video.autoplay = true;
     video.loop = true;
     video.muted = true;
+    video.preload = "auto";
     video.playsInline = true;
     video.disablePictureInPicture = true;
     video.setAttribute("aria-hidden", "true");
-    video.addEventListener("loadeddata", () => {
-        console.info("[ThemeVideoBackground] Video loaded", video?.currentSrc, video?.videoWidth, video?.videoHeight);
-    });
     video.addEventListener("error", () => {
         console.error("[ThemeVideoBackground] Video error", video?.currentSrc, video?.error?.code, video?.error?.message);
     });
@@ -172,7 +171,6 @@ async function syncVideo() {
         currentKey = key;
         currentResolvedSrc = await resolveVideoSrc(src, themeId);
         if (run !== syncRun) return;
-        console.info("[ThemeVideoBackground] Using video source", currentResolvedSrc);
         element.src = currentResolvedSrc;
         element.load();
     }
@@ -181,8 +179,10 @@ async function syncVideo() {
 }
 
 function cleanup() {
-    window.clearInterval(interval);
-    interval = undefined;
+    window.clearInterval(fallbackInterval);
+    window.clearTimeout(syncTimer);
+    fallbackInterval = undefined;
+    syncTimer = undefined;
     observer?.disconnect();
     observer = undefined;
 
@@ -194,6 +194,19 @@ function cleanup() {
     void Native?.stopVideoServer().catch(() => void 0);
 }
 
+function scheduleSync(delay = 60) {
+    window.clearTimeout(syncTimer);
+    syncTimer = window.setTimeout(() => {
+        syncTimer = undefined;
+        void syncVideo();
+    }, delay);
+}
+
+function observe(target: Node | null | undefined, options: MutationObserverInit) {
+    if (!target) return;
+    observer?.observe(target, options);
+}
+
 export default definePlugin({
     name: "ThemeVideoBackground",
     description: "Adds video background support for themes using CSS variables. Desktop supports local playback and remote caching; web supports direct public video URLs.",
@@ -201,11 +214,20 @@ export default definePlugin({
     enabledByDefault: true,
 
     start() {
-        syncVideo();
+        scheduleSync(0);
 
-        interval = window.setInterval(syncVideo, 1500);
-        observer = new MutationObserver(syncVideo);
-        observer.observe(document.documentElement, {
+        fallbackInterval = window.setInterval(scheduleSync, 10000);
+        observer = new MutationObserver(() => scheduleSync());
+        observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "style"]
+        });
+        observe(document.head, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+        observe(document.body, {
             attributes: true,
             attributeFilter: ["class", "style"]
         });
