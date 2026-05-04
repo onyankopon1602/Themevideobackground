@@ -6,7 +6,7 @@
 
 import definePlugin, { PluginNative } from "@utils/types";
 
-const Native = VencordNative.pluginHelpers.ThemeVideoBackground as PluginNative<typeof import("./native")>;
+const Native = IS_WEB ? undefined : VencordNative.pluginHelpers.ThemeVideoBackground as PluginNative<typeof import("./native")>;
 
 const VIDEO_ID = "vc-theme-video-background";
 const STYLE_ID = "vc-theme-video-background-style";
@@ -20,9 +20,18 @@ let currentResolvedSrc = "";
 let syncRun = 0;
 let interval: number | undefined;
 let observer: MutationObserver | undefined;
+let loggedMissingSrc = false;
+let loggedMissingDom = false;
 
 function readCssVariable(name: string) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    for (const element of [document.documentElement, document.body, document.querySelector("#app-mount")]) {
+        if (!element) continue;
+
+        const value = getComputedStyle(element).getPropertyValue(name).trim();
+        if (value) return value;
+    }
+
+    return "";
 }
 
 function parseCssUrl(value: string) {
@@ -60,6 +69,7 @@ function getVideoId() {
 
 function ensureStyle() {
     if (style?.isConnected) return;
+    if (!document.head) return;
 
     style = document.createElement("style");
     style.id = STYLE_ID;
@@ -85,6 +95,7 @@ function removeStyle() {
 
 function ensureVideo() {
     if (video?.isConnected) return video;
+    if (!document.body) return null;
 
     video = document.createElement("video");
     video.id = VIDEO_ID;
@@ -106,6 +117,8 @@ function ensureVideo() {
 }
 
 async function resolveVideoSrc(src: string, themeId: string) {
+    if (!Native) return src;
+
     try {
         return await Native.resolveVideoSource(src, themeId);
     } catch (error) {
@@ -121,6 +134,11 @@ async function syncVideo() {
     const key = `${themeId}\n${src}`;
 
     if (!src) {
+        if (!loggedMissingSrc) {
+            loggedMissingSrc = true;
+            console.info("[ThemeVideoBackground] Waiting for --vc-video-bg or --j1c-video-bg in the active theme");
+        }
+
         currentKey = "";
         currentResolvedSrc = "";
         if (video) {
@@ -134,8 +152,20 @@ async function syncVideo() {
         return;
     }
 
+    loggedMissingSrc = false;
+
     ensureStyle();
     const element = ensureVideo();
+    if (!style || !element) {
+        if (!loggedMissingDom) {
+            loggedMissingDom = true;
+            console.info("[ThemeVideoBackground] Waiting for document head/body before injecting the video");
+        }
+        return;
+    }
+
+    loggedMissingDom = false;
+
     element.style.display = "";
 
     if (key !== currentKey) {
@@ -161,13 +191,14 @@ function cleanup() {
     removeStyle();
     currentKey = "";
     currentResolvedSrc = "";
-    void Native.stopVideoServer().catch(() => void 0);
+    void Native?.stopVideoServer().catch(() => void 0);
 }
 
 export default definePlugin({
     name: "ThemeVideoBackground",
-    description: "Adds video background support for themes using CSS variables, with local playback and automatic remote video caching.",
+    description: "Adds video background support for themes using CSS variables. Desktop supports local playback and remote caching; web supports direct public video URLs.",
     authors: [{ name: "qbvi", id: 0n }],
+    enabledByDefault: true,
 
     start() {
         syncVideo();

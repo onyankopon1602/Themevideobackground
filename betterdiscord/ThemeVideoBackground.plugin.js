@@ -12,6 +12,7 @@ module.exports = class ThemeVideoBackground {
         this.style = null;
         this.currentKey = "";
         this.currentSrc = "";
+        this.currentBlobUrl = "";
         this.syncRun = 0;
         this.interval = null;
         this.observer = null;
@@ -40,10 +41,18 @@ module.exports = class ThemeVideoBackground {
         this.removeStyle();
         this.currentKey = "";
         this.currentSrc = "";
+        this.revokeBlobUrl();
     }
 
     readCssVariable(name) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        for (const element of [document.documentElement, document.body, document.querySelector("#app-mount")]) {
+            if (!element) continue;
+
+            const value = getComputedStyle(element).getPropertyValue(name).trim();
+            if (value) return value;
+        }
+
+        return "";
     }
 
     parseCssUrl(value) {
@@ -136,6 +145,46 @@ module.exports = class ThemeVideoBackground {
         this.video = null;
     }
 
+    revokeBlobUrl() {
+        if (!this.currentBlobUrl) return;
+
+        URL.revokeObjectURL(this.currentBlobUrl);
+        this.currentBlobUrl = "";
+    }
+
+    localPathFromFileUrl(src) {
+        if (!src.startsWith("file:///")) return "";
+
+        try {
+            return decodeURIComponent(src.replace(/^file:\/\/\//, ""));
+        } catch {
+            return src.replace(/^file:\/\/\//, "");
+        }
+    }
+
+    isWindowsPath(src) {
+        return /^[a-zA-Z]:[\\/]/.test(src);
+    }
+
+    async resolveVideoSource(src) {
+        const localPath = this.localPathFromFileUrl(src) || (this.isWindowsPath(src) ? src : "");
+        if (!localPath) return src;
+
+        try {
+            const fs = require("fs");
+            const path = require("path");
+            const bytes = fs.readFileSync(localPath);
+            const extension = path.extname(localPath).toLowerCase();
+            const type = extension === ".webm" ? "video/webm" : extension === ".mov" ? "video/quicktime" : "video/mp4";
+            this.revokeBlobUrl();
+            this.currentBlobUrl = URL.createObjectURL(new Blob([bytes], { type }));
+            return this.currentBlobUrl;
+        } catch (error) {
+            console.error("[ThemeVideoBackground] Failed to read local video", localPath, error);
+            return src;
+        }
+    }
+
     async syncVideo() {
         const run = ++this.syncRun;
         const src = this.getVideoSrc();
@@ -147,6 +196,7 @@ module.exports = class ThemeVideoBackground {
             this.currentSrc = "";
             this.removeVideo();
             this.removeStyle();
+            this.revokeBlobUrl();
             return;
         }
 
@@ -155,7 +205,7 @@ module.exports = class ThemeVideoBackground {
 
         if (key !== this.currentKey) {
             this.currentKey = key;
-            this.currentSrc = src;
+            this.currentSrc = await this.resolveVideoSource(src);
             if (run !== this.syncRun) return;
             console.info("[ThemeVideoBackground] Using video source", this.currentSrc);
             element.src = this.currentSrc;
